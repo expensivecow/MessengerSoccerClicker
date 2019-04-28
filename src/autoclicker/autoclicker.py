@@ -22,24 +22,16 @@ def main():
 
     points = 0
     while(True):
-        top_left, bottom_right, width, height = track_soccer_ball(img_path, top_left_coords, image_width, image_height)
-        center_of_ball_x = (top_left_coords[0]) + ((top_left[0] + bottom_right[0]) / 2)
-        center_of_ball_y = (top_left_coords[1]) + ((top_left[1] + bottom_right[1]) / 2)
+        output = track_soccer_ball(img_path, top_left_coords, image_width, image_height)
+        cv2.imshow('hello', output)
+        cv2.waitKey(1)
+        #center_of_ball_x = (top_left_coords[0]) + ((top_left[0] + bottom_right[0]) / 2)
+        #center_of_ball_y = (top_left_coords[1]) + ((top_left[1] + bottom_right[1]) / 2)
 
-        print(str(center_of_ball_x))
-        print(str(center_of_ball_y))
+        #print(str(center_of_ball_x))
+        #print(str(center_of_ball_y))
 
-        pyautogui.click(center_of_ball_x, center_of_ball_y, button='left')
-
-        if (points % 3 == 0):
-            time.sleep(0.4)
-        else:
-            time.sleep(0.2)
-        points += 1
-
-        if (cv2.waitKey(25) & 0xFF == ord('q')):
-            break
-
+        #pyautogui.click(center_of_ball_x, center_of_ball_y, button='left')
 
 def track_soccer_ball(img_path, top_left_coords, image_width, image_height):
     screen_portion_img_path = os.path.join(img_path, 'portion_of_screen.png')
@@ -52,7 +44,8 @@ def track_soccer_ball(img_path, top_left_coords, image_width, image_height):
 
         mss.tools.to_png(img.rgb, img.size, output=screen_portion_img_path)
 
-    return find_template_match(screen_portion_img_path, soccer_ball_img_path, cv2.TM_SQDIFF_NORMED)
+    return perform_sift_matching(screen_portion_img_path, soccer_ball_img_path)
+
 
     '''
     phone_mat = cv2.imread(screen_portion_img_path)
@@ -60,6 +53,25 @@ def track_soccer_ball(img_path, top_left_coords, image_width, image_height):
     cv2.imshow('hello', phone_mat)
     cv2.waitKey(1)
     '''
+
+def perform_sift_matching(img_path, img_template_path):
+    orb = cv2.ORB_create()
+
+    img = cv2.imread(img_path, 0)
+    img_template = cv2.imread(img_template_path, 0)
+
+    kp1, des1 = orb.detectAndCompute(img_template, None)
+    kp2, des2 = orb.detectAndCompute(img, None)
+
+    bf = cv2.BFMatcher(cv2.NORM_HAMMING, crossCheck=True)
+
+    matches = bf.match(des1, des2)
+    matches = sorted(matches, key=lambda x: x.distance)
+
+
+    output = cv2.drawMatches(img_template, kp1, img, kp2, matches[:10], flags=2, outImg=None)
+
+    return output
 
 def debug_mat(mat):
     cv2.imshow('debug img', mat)
